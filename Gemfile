@@ -1,4 +1,6 @@
-source :rubygems
+source 'https://rubygems.org'
+
+gem "rake"
 
 gem "sinatra", '1.2.6'
 gem "haml"
@@ -6,9 +8,12 @@ gem "sass"
 gem "json"
 gem "thin"
 gem "RubyInline"
+gem "ZenTest", '<= 4.6.0'   # dependency of RubyInline, newer versions break Heroku deploy
 gem "png"
 gem "rest-client"
 gem "ruby-openid"
+gem "couchrest"
+gem "memcache-client", :require => 'memcache'
 
 group :development do
   gem 'ruby-debug', :require => 'ruby-debug', :platform => :mri_18
@@ -23,5 +28,5 @@ group :test do
   gem 'rspec-mocks'        , '2.4.0'
   gem 'capybara'
   gem 'launchy'
-  gem 'selenium-webdriver', '2.19.0'
+  gem 'selenium-webdriver', '2.22.2'
 end

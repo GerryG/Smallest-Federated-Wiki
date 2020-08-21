@@ -1,8 +1,13 @@
 .DS_Store
 *.swp
+*.iml
+.idea/
 .sass-cache
 .rvmrc
 /data
 /spec/data
-/client/js
-/server/express/node_modules
+/client/plugins/
+/client/chart/
+/client/garden/
+node_modules
+npm-debug.log

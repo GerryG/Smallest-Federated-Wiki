@@ -2,6 +2,7 @@ require File.dirname(__FILE__) + '/spec_helper'
 
 describe "Page" do
   before(:all) do
+    Store.set 'FileStore', nil
     @page = Page.new
     @page.directory = nil
     @page.default_directory = nil
@@ -30,6 +31,7 @@ describe "Page" do
       @test_data_dir = File.join(@root, 'spec/data')
       @page.directory = @test_data_dir
       @page.default_directory = File.join(@test_data_dir, 'defaults')
+      @page.plugins_directory = File.join(@root, 'client', 'plugins')
     end
 
     before(:each) do

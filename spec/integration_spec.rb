@@ -21,15 +21,19 @@ describe "loading a page" do
   end
 
   it "should load multiple pages at once" do
-    visit("/view/welcome-visitors/view/indie-web-camp")
-    body.should include("You are welcome to copy this page to any server you own and revise its welcoming message as you see fit.")
-    body.should include("Rather than posting content on many third-party silos of data, we should all begin owning the data we're creating. ")
+    visit("/view/welcome-visitors/view/multiple-paragraphs")
+    body.should include("Welcome to the")
   end
 
   it "should load remote page" do
     remote = "localhost:#{Capybara.server_port}"
     visit("/#{remote}/welcome-visitors")
-    body.should include("You are welcome to copy this page to any server you own and revise its welcoming message as you see fit.")
+    body.should include("Welcome to the")
+  end
+
+  it "should load a page from plugins" do
+    visit("/view/air-temperature")
+    body.should include("Air Temperature")
   end
 
 end
@@ -163,7 +167,8 @@ describe "completely empty (but valid json) page" do
   end
 
   it "should have an empty journal" do
-    body.should include("<div class=\"journal\"></div>")
+    body.should include("<div class=\"journal\">")
+    page.all(".journal .action").length.should == 0
   end
 end
 
@@ -181,7 +186,7 @@ describe "moving paragraphs" do
   end
 
   def journal_items
-    page.all(".journal a")
+    page.all(".journal .action")
   end
 
   before do
@@ -197,9 +202,65 @@ describe "moving paragraphs" do
     original_journal_length = journal_items.length
     move_paragraph
     journal_items.length.should == original_journal_length + 1
-    journal_items.last.text.should == "m"
+    journal_items.last[:class].should == "action move"
   end
 
+
+end
+
+describe "moving paragraphs between pages on different servers" do
+  before do
+    use_fixture_pages "simple-page", "multiple-paragraphs"
+    remote = "localhost:#{Capybara.server_port}"
+    visit "/view/simple-page/#{remote}/multiple-paragraphs"
+  end
+
+  def drag_item_to(item, destination)
+    page.driver.browser.execute_script "(function(p, d) {
+      var paragraph = $(p);
+      var destination = $(d);
+
+      var source = paragraph.parents('.story');
+
+      paragraph.appendTo(destination);
+
+      var ui = {item: paragraph};
+      destination.trigger('sortupdate', [ui]);
+      source.trigger('sortupdate', [ui]);
+    }).apply(this, arguments);", item.native, destination.find(".story").native
+  end
+
+  def journal_for(page)
+    JSON.parse(Net::HTTP.get(URI.parse("http://localhost:#{Capybara.server_port}/#{page}.json")))['journal']
+  end
+
+  it "should move the paragraph and add provenance to the journal" do
+    pending
+    local_page, remote_page = page.all(".page")
+    paragraph_to_copy = remote_page.find(".item")
+
+    drag_item_to paragraph_to_copy, local_page
+
+    journal_entry = journal_for("simple-page").last
+
+    journal_entry['type'].should == "add"
+    journal_entry['item']['text'] == paragraph_to_copy.text
+    journal_entry['origin'].should == {
+      'site' => "localhost:#{Capybara.server_port}",
+      'slug' => 'multiple-paragraphs'
+    }
+  end
+
+  it "should move the paragraph from one to another" do
+    pending
+    local_page, remote_page = page.all(".page")
+    paragraph_to_copy = remote_page.find(".item")
+
+    drag_item_to paragraph_to_copy, local_page
+
+    journal_for("multiple-paragraphs").each {|j| p j }
+    journal_for("multiple-paragraphs").last['type'].should == 'remove'
+  end
 
 end
 
@@ -213,12 +274,12 @@ describe "navigating between pages" do
   end
 
   it "should open internal links by adding a new wiki page to the web page" do
-    link_titled("Indie Web Camp").click
+    link_titled("Local Editing").click
     page.all(".page").length.should == 2
   end
 
   it "should remove added pages when the browser's back button is pressed" do
-    link_titled("Indie Web Camp").click
+    link_titled("Local Editing").click
     page.back
     page.all(".page").length.should == 1
   end
@@ -295,3 +356,17 @@ describe "viewing journal" do
     second_paragraph.should be_highlighted
   end
 end
+
+# describe "testing javascript with mocha" do
+
+#   it "should run with no failures" do
+#     visit "/runtests.html"
+#     failures = page.all(".failures em").first.text
+#     trouble = page.all(".fail h2").collect{|e|e.text}.inspect
+#     if failures.to_i > 0
+#       puts "Paused to review #{failures} Mocha errors. RETURN to continue."
+#       STDIN.readline
+#     end
+#     failures.should be('0'), trouble
+#   end
+# end
